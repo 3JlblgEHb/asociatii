@@ -1,0 +1,11 @@
+import { acceptInvitation } from "@/lib/actions/organizations";
+import { InviteClient } from "@/components/invite/invite-client";
+
+export default async function InvitePage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  return <InviteClient token={token} />;
+}
