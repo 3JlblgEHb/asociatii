@@ -73,18 +73,10 @@ Deno.serve(async (req) => {
 
     const { data: responses } = await supabase
       .from("vote_responses")
-      .select("*, apartments(number), vote_options(label)")
+      .select("*, property_units(number), vote_options(label)")
       .eq("vote_id", voteId);
 
     const totalVotes = responses?.length ?? 0;
-
-    const resultsHtml = (options ?? [])
-      .map((opt) => {
-        const count = (responses ?? []).filter((r) => r.option_id === opt.id).length;
-        const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-        return `<tr><td>${opt.label}</td><td>${count}</td><td>${pct}%</td></tr>`;
-      })
-      .join("");
 
     const pdfContent = `%PDF-1.4
 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
@@ -95,7 +87,7 @@ BT /F1 16 Tf 50 750 Td (${vote.title.replace(/[()\\]/g, "")}) Tj
 /F1 12 Tf 0 -30 Td (Status: ${vote.status}) Tj
 0 -20 Td (Total votes: ${totalVotes}) Tj
 0 -40 Td (Results:) Tj
-${(options ?? []).map((opt, i) => {
+${(options ?? []).map((opt) => {
   const count = (responses ?? []).filter((r) => r.option_id === opt.id).length;
   const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
   return `0 -20 Td (${opt.label}: ${count} (${pct}%)) Tj`;

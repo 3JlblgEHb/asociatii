@@ -21,7 +21,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/organizations", label: "Organizații", icon: Users },
   { href: "/buildings", label: "Clădiri", icon: Building2 },
-  { href: "/apartments", label: "Apartamente", icon: Home },
+  { href: "/properties", label: "Unități", icon: Home },
   { href: "/documents", label: "Documente", icon: FileText },
   { href: "/announcements", label: "Anunțuri", icon: Megaphone },
   { href: "/votes", label: "Voturi", icon: Vote },

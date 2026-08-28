@@ -1,16 +1,21 @@
 "use client";
 
 import { useActionState } from "react";
-import { createBuilding, deleteBuilding } from "@/lib/actions/buildings";
+import { createBuilding, createCondominium, deleteBuilding } from "@/lib/actions/buildings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -26,18 +31,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Building } from "@/lib/types/database";
+import type { Building, Condominium } from "@/lib/types/database";
 import { Plus, Trash2 } from "lucide-react";
 
 interface BuildingsClientProps {
-  buildings: Building[];
+  buildings: (Building & { condominiums?: Pick<Condominium, "name"> | null })[];
+  condominiums: Condominium[];
   canManage: boolean;
 }
 
-export function BuildingsClient({ buildings, canManage }: BuildingsClientProps) {
+export function BuildingsClient({ buildings, condominiums, canManage }: BuildingsClientProps) {
   const [createState, createAction, createPending] = useActionState(
     async (_prev: { error?: string } | null, formData: FormData) =>
       (await createBuilding(formData)) ?? null,
+    null
+  );
+  const [condominiumState, condominiumAction, condominiumPending] = useActionState(
+    async (_prev: { error?: string } | null, formData: FormData) =>
+      (await createCondominium(formData)) ?? null,
     null
   );
 
@@ -45,8 +56,35 @@ export function BuildingsClient({ buildings, canManage }: BuildingsClientProps) 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Clădiri</h1>
-        {canManage && (
+        {canManage && <div className="flex gap-2">
           <Dialog>
+            <DialogTrigger>
+              <Button variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                Adaugă condominiu
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Condominiu nou</DialogTitle></DialogHeader>
+              <form action={condominiumAction} className="space-y-4">
+                {condominiumState?.error && <p className="text-sm text-destructive">{condominiumState.error}</p>}
+                <div className="space-y-2">
+                  <Label htmlFor="condominium_name">Nume</Label>
+                  <Input id="condominium_name" name="name" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="condominium_address">Adresă</Label>
+                  <Input id="condominium_address" name="address" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="condominium_cadastral_number">Număr cadastral</Label>
+                  <Input id="condominium_cadastral_number" name="cadastral_number" />
+                </div>
+                <Button type="submit" disabled={condominiumPending}>Salvează</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+          {condominiums.length > 0 && <Dialog>
             <DialogTrigger>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
@@ -61,6 +99,17 @@ export function BuildingsClient({ buildings, canManage }: BuildingsClientProps) 
                 {createState?.error && (
                   <p className="text-sm text-destructive">{createState.error}</p>
                 )}
+                <div className="space-y-2">
+                  <Label>Condominiu</Label>
+                  <Select name="condominium_id" required>
+                    <SelectTrigger><SelectValue placeholder="Selectează condominiul" /></SelectTrigger>
+                    <SelectContent>
+                      {condominiums.map((condominium) => (
+                        <SelectItem key={condominium.id} value={condominium.id}>{condominium.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Nume</Label>
                   <Input id="name" name="name" required placeholder="Bloc A" />
@@ -84,8 +133,8 @@ export function BuildingsClient({ buildings, canManage }: BuildingsClientProps) 
                 </Button>
               </form>
             </DialogContent>
-          </Dialog>
-        )}
+          </Dialog>}
+        </div>}
       </div>
 
       <Card>
@@ -94,6 +143,7 @@ export function BuildingsClient({ buildings, canManage }: BuildingsClientProps) 
             <TableHeader>
               <TableRow>
                 <TableHead>Nume</TableHead>
+                <TableHead>Condominiu</TableHead>
                 <TableHead>Adresă</TableHead>
                 <TableHead>Etaje</TableHead>
                 <TableHead>Scări</TableHead>
@@ -103,7 +153,7 @@ export function BuildingsClient({ buildings, canManage }: BuildingsClientProps) 
             <TableBody>
               {buildings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canManage ? 5 : 4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={canManage ? 6 : 5} className="text-center text-muted-foreground">
                     Nicio clădire adăugată
                   </TableCell>
                 </TableRow>
@@ -111,6 +161,7 @@ export function BuildingsClient({ buildings, canManage }: BuildingsClientProps) 
                 buildings.map((building) => (
                   <TableRow key={building.id}>
                     <TableCell className="font-medium">{building.name}</TableCell>
+                    <TableCell>{building.condominiums?.name ?? "—"}</TableCell>
                     <TableCell>{building.address}</TableCell>
                     <TableCell>{building.floors ?? "—"}</TableCell>
                     <TableCell>{building.entrance_count ?? 1}</TableCell>

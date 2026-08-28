@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireAuth, requireManagement, requireOrganization } from "@/lib/auth/context";
+import { requireManagement, requireOrganization } from "@/lib/auth/context";
 import { writeAuditLog } from "@/lib/actions/utils";
 import { revalidatePath } from "next/cache";
 import type { RequestCategory, RequestStatus } from "@/lib/types/database";
@@ -13,7 +13,7 @@ export async function createServiceRequest(formData: FormData) {
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const category = formData.get("category") as RequestCategory;
-  const apartmentId = (formData.get("apartment_id") as string) || null;
+  const propertyUnitId = (formData.get("property_unit_id") as string) || null;
 
   const attachments: string[] = [];
   const files = formData.getAll("attachments") as File[];
@@ -34,7 +34,7 @@ export async function createServiceRequest(formData: FormData) {
     .insert({
       organization_id: ctx.currentOrganization.id,
       created_by: ctx.user.id,
-      apartment_id: apartmentId || ctx.currentMembership?.apartment_id,
+      property_unit_id: propertyUnitId,
       title,
       description,
       category,
@@ -97,7 +97,7 @@ export async function getServiceRequests() {
 
   const { data } = await supabase
     .from("service_requests")
-    .select("*, users_profiles(full_name, email), apartments(number)")
+    .select("*, users_profiles(full_name, email), property_units(number)")
     .eq("organization_id", ctx.currentOrganization.id)
     .order("created_at", { ascending: false });
 

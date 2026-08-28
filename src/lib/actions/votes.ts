@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireAuth, requireManagement, requireOrganization } from "@/lib/auth/context";
+import { requireManagement, requireOrganization } from "@/lib/auth/context";
 import { writeAuditLog } from "@/lib/actions/utils";
 import { revalidatePath } from "next/cache";
 import type { VoteStatus } from "@/lib/types/database";
@@ -80,7 +80,7 @@ export async function updateVoteStatus(voteId: string, status: VoteStatus) {
 }
 
 export async function castVote(voteId: string, optionId: string) {
-  const ctx = await requireOrganization();
+  await requireOrganization();
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("cast_vote", {
@@ -116,7 +116,7 @@ export async function getVoteDetails(voteId: string) {
 
   const { data: responses } = await supabase
     .from("vote_responses")
-    .select("*, apartments(number), vote_options(label)")
+    .select("*, property_units(number), vote_options(label)")
     .eq("vote_id", voteId);
 
   const { data: userResponse } = await supabase

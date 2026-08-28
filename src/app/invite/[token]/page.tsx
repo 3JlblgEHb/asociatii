@@ -1,4 +1,3 @@
-import { acceptInvitation } from "@/lib/actions/organizations";
 import { InviteClient } from "@/components/invite/invite-client";
 
 export default async function InvitePage({

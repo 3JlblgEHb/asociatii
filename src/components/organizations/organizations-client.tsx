@@ -38,7 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import type { Organization, OrganizationMember, UserRole } from "@/lib/types/database";
-import { Plus, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 interface OrganizationsPageProps {
   organization: Organization | null;

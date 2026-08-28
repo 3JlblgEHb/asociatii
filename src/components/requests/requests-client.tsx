@@ -9,8 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -58,7 +56,7 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 interface RequestsClientProps {
   requests: (ServiceRequest & {
     users_profiles?: { full_name: string | null; email: string };
-    apartments?: { number: string } | null;
+    property_units?: { number: string } | null;
   })[];
   canManage: boolean;
 }

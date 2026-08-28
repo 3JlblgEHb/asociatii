@@ -26,6 +26,19 @@ export type RequestStatus = "new" | "in_progress" | "resolved" | "rejected";
 
 export type MemberStatus = "active" | "pending" | "inactive";
 
+export type PropertyUnitType =
+  | "apartment"
+  | "commercial"
+  | "parking"
+  | "storage"
+  | "other";
+
+export type OccupancyType =
+  | "tenant"
+  | "resident"
+  | "commercial_occupant"
+  | "other";
+
 export type InvitationStatus = "pending" | "accepted" | "expired" | "cancelled";
 
 export type NotificationType =
@@ -66,7 +79,6 @@ export interface OrganizationMember {
   user_id: string;
   role: UserRole;
   status: MemberStatus;
-  apartment_id: string | null;
   created_at: string;
   updated_at: string;
   users_profiles?: UserProfile;
@@ -75,6 +87,7 @@ export interface OrganizationMember {
 export interface Building {
   id: string;
   organization_id: string;
+  condominium_id: string;
   name: string;
   address: string;
   floors: number | null;
@@ -83,19 +96,87 @@ export interface Building {
   updated_at: string;
 }
 
-export interface Apartment {
+export interface Condominium {
   id: string;
   organization_id: string;
+  name: string;
+  address: string;
+  cadastral_number: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PropertyUnit {
+  id: string;
+  organization_id: string;
+  condominium_id: string;
   building_id: string;
   number: string;
+  unit_type: PropertyUnitType;
+  cadastral_number: string | null;
+  entrance: string | null;
   floor: number | null;
   area_sqm: number | null;
+  common_share: number | null;
   has_voting_rights: boolean;
-  owner_id: string | null;
   created_at: string;
   updated_at: string;
   buildings?: Building;
-  users_profiles?: UserProfile;
+  condominiums?: Condominium;
+  property_ownerships?: (PropertyOwnership & { persons?: Person })[];
+}
+
+export interface Person {
+  id: string;
+  organization_id: string;
+  user_id: string | null;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PropertyOwnership {
+  id: string;
+  organization_id: string;
+  property_unit_id: string;
+  person_id: string;
+  ownership_share: number;
+  valid_from: string;
+  valid_to: string | null;
+  document_reference: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PropertyOccupancy {
+  id: string;
+  organization_id: string;
+  property_unit_id: string;
+  person_id: string;
+  occupancy_type: OccupancyType;
+  valid_from: string;
+  valid_to: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PropertyMandate {
+  id: string;
+  organization_id: string;
+  grantor_person_id: string;
+  representative_person_id: string;
+  property_unit_id: string | null;
+  scopes: string[];
+  valid_from: string;
+  valid_to: string;
+  document_reference: string | null;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Document {
@@ -152,7 +233,7 @@ export interface VoteResponse {
   id: string;
   vote_id: string;
   organization_id: string;
-  apartment_id: string;
+  property_unit_id: string;
   option_id: string;
   voter_id: string;
   created_at: string;
@@ -161,7 +242,7 @@ export interface VoteResponse {
 export interface ServiceRequest {
   id: string;
   organization_id: string;
-  apartment_id: string | null;
+  property_unit_id: string | null;
   created_by: string;
   category: RequestCategory;
   title: string;
@@ -224,8 +305,13 @@ export interface Database {
       users_profiles: { Row: UserProfile; Insert: Partial<UserProfile>; Update: Partial<UserProfile>; Relationships: [] };
       organizations: { Row: Organization; Insert: Partial<Organization>; Update: Partial<Organization>; Relationships: [] };
       organization_members: { Row: OrganizationMember; Insert: Partial<OrganizationMember>; Update: Partial<OrganizationMember>; Relationships: [] };
+      condominiums: { Row: Condominium; Insert: Partial<Condominium>; Update: Partial<Condominium>; Relationships: [] };
       buildings: { Row: Building; Insert: Partial<Building>; Update: Partial<Building>; Relationships: [] };
-      apartments: { Row: Apartment; Insert: Partial<Apartment>; Update: Partial<Apartment>; Relationships: [] };
+      property_units: { Row: PropertyUnit; Insert: Partial<PropertyUnit>; Update: Partial<PropertyUnit>; Relationships: [] };
+      persons: { Row: Person; Insert: Partial<Person>; Update: Partial<Person>; Relationships: [] };
+      property_ownerships: { Row: PropertyOwnership; Insert: Partial<PropertyOwnership>; Update: Partial<PropertyOwnership>; Relationships: [] };
+      property_occupancies: { Row: PropertyOccupancy; Insert: Partial<PropertyOccupancy>; Update: Partial<PropertyOccupancy>; Relationships: [] };
+      property_mandates: { Row: PropertyMandate; Insert: Partial<PropertyMandate>; Update: Partial<PropertyMandate>; Relationships: [] };
       documents: { Row: Document; Insert: Partial<Document>; Update: Partial<Document>; Relationships: [] };
       announcements: { Row: Announcement; Insert: Partial<Announcement>; Update: Partial<Announcement>; Relationships: [] };
       votes: { Row: Vote; Insert: Partial<Vote>; Update: Partial<Vote>; Relationships: [] };
@@ -239,6 +325,21 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      create_property_unit: {
+        Args: {
+          p_organization_id: string;
+          p_condominium_id: string;
+          p_building_id: string;
+          p_number: string;
+          p_unit_type?: PropertyUnitType;
+          p_cadastral_number?: string | null;
+          p_floor?: number | null;
+          p_area_sqm?: number | null;
+          p_has_voting_rights?: boolean;
+          p_owner_user_id?: string | null;
+        };
+        Returns: PropertyUnit;
+      };
       create_organization: {
         Args: {
           p_name: string;
@@ -276,6 +377,8 @@ export interface Database {
       request_category: RequestCategory;
       request_status: RequestStatus;
       member_status: MemberStatus;
+      property_unit_type: PropertyUnitType;
+      occupancy_type: OccupancyType;
       invitation_status: InvitationStatus;
       notification_type: NotificationType;
     };

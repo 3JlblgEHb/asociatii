@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   let stats = {
     buildings: 0,
-    apartments: 0,
+    propertyUnits: 0,
     documents: 0,
     activeVotes: 0,
     openRequests: 0,
@@ -23,10 +23,10 @@ export default async function DashboardPage() {
   };
 
   if (orgId) {
-    const [buildings, apartments, documents, votes, requests, members] =
+    const [buildings, propertyUnits, documents, votes, requests, members] =
       await Promise.all([
         supabase.from("buildings").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
-        supabase.from("apartments").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
+        supabase.from("property_units").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
         supabase.from("documents").select("id", { count: "exact", head: true }).eq("organization_id", orgId),
         supabase.from("votes").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("status", "active"),
         supabase.from("service_requests").select("id", { count: "exact", head: true }).eq("organization_id", orgId).in("status", ["new", "in_progress"]),
@@ -35,7 +35,7 @@ export default async function DashboardPage() {
 
     stats = {
       buildings: buildings.count ?? 0,
-      apartments: apartments.count ?? 0,
+      propertyUnits: propertyUnits.count ?? 0,
       documents: documents.count ?? 0,
       activeVotes: votes.count ?? 0,
       openRequests: requests.count ?? 0,
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
 
   const cards = [
     { label: "Clădiri", value: stats.buildings, icon: Building2, href: "/buildings" },
-    { label: "Apartamente", value: stats.apartments, icon: Users, href: "/apartments" },
+    { label: "Unități", value: stats.propertyUnits, icon: Users, href: "/properties" },
     { label: "Documente", value: stats.documents, icon: FileText, href: "/documents" },
     { label: "Voturi active", value: stats.activeVotes, icon: Vote, href: "/votes" },
     { label: "Cereri deschise", value: stats.openRequests, icon: Wrench, href: "/requests" },

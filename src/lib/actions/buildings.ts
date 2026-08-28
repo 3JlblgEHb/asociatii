@@ -1,15 +1,16 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireManagement, requireOrganization } from "@/lib/auth/context";
-import { writeAuditLog } from "@/lib/actions/utils";
+import { requireManagement } from "@/lib/auth/context";
 import { revalidatePath } from "next/cache";
+import type { PropertyUnitType } from "@/lib/types/database";
 
 export async function createBuilding(formData: FormData) {
   const ctx = await requireManagement();
   const supabase = await createClient();
 
   const name = formData.get("name") as string;
+  const condominiumId = formData.get("condominium_id") as string;
   const address = formData.get("address") as string;
   const floors = formData.get("floors")
     ? Number(formData.get("floors"))
@@ -22,6 +23,7 @@ export async function createBuilding(formData: FormData) {
     .from("buildings")
     .insert({
       organization_id: ctx.currentOrganization.id,
+      condominium_id: condominiumId,
       name,
       address,
       floors,
@@ -36,35 +38,29 @@ export async function createBuilding(formData: FormData) {
   return { success: true, building: data };
 }
 
-export async function updateBuilding(formData: FormData) {
+export async function createCondominium(formData: FormData) {
   const ctx = await requireManagement();
   const supabase = await createClient();
 
-  const id = formData.get("id") as string;
-  const name = formData.get("name") as string;
-  const address = formData.get("address") as string;
-  const floors = formData.get("floors")
-    ? Number(formData.get("floors"))
-    : null;
-  const entranceCount = formData.get("entrance_count")
-    ? Number(formData.get("entrance_count"))
-    : 1;
+  const name = String(formData.get("name") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const cadastralNumber = String(formData.get("cadastral_number") ?? "").trim() || null;
 
-  const { error } = await supabase
-    .from("buildings")
-    .update({
+  const { data, error } = await supabase
+    .from("condominiums")
+    .insert({
+      organization_id: ctx.currentOrganization.id,
       name,
       address,
-      floors,
-      entrance_count: entranceCount,
+      cadastral_number: cadastralNumber,
     })
-    .eq("id", id)
-    .eq("organization_id", ctx.currentOrganization.id);
+    .select()
+    .single();
 
   if (error) return { error: error.message };
 
   revalidatePath("/buildings");
-  return { success: true };
+  return { success: true, condominium: data };
 }
 
 export async function deleteBuilding(id: string) {
@@ -80,131 +76,57 @@ export async function deleteBuilding(id: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/buildings");
-  revalidatePath("/apartments");
+  revalidatePath("/properties");
   return { success: true };
 }
 
-export async function createApartment(formData: FormData) {
+export async function createPropertyUnit(formData: FormData) {
   const ctx = await requireManagement();
   const supabase = await createClient();
 
   const buildingId = formData.get("building_id") as string;
+  const condominiumId = formData.get("condominium_id") as string;
   const number = formData.get("number") as string;
+  const unitType = formData.get("unit_type") as PropertyUnitType;
+  const cadastralNumber = (formData.get("cadastral_number") as string) || null;
   const floor = formData.get("floor") ? Number(formData.get("floor")) : null;
   const areaSqm = formData.get("area_sqm")
     ? Number(formData.get("area_sqm"))
     : null;
   const hasVotingRights = formData.get("has_voting_rights") === "true";
-  const ownerId = (formData.get("owner_id") as string) || null;
+  const ownerUserId = (formData.get("owner_user_id") as string) || null;
 
-  const { data, error } = await supabase
-    .from("apartments")
-    .insert({
-      organization_id: ctx.currentOrganization.id,
-      building_id: buildingId,
-      number,
-      floor,
-      area_sqm: areaSqm,
-      has_voting_rights: hasVotingRights,
-      owner_id: ownerId || null,
-    })
-    .select()
-    .single();
-
-  if (error) return { error: error.message };
-
-  if (ownerId) {
-    await supabase.from("organization_members").upsert(
-      {
-        organization_id: ctx.currentOrganization.id,
-        user_id: ownerId,
-        role: "owner",
-        status: "active",
-        apartment_id: data.id,
-      },
-      { onConflict: "organization_id,user_id" }
-    );
-  }
-
-  revalidatePath("/apartments");
-  return { success: true, apartment: data };
-}
-
-export async function updateApartment(formData: FormData) {
-  const ctx = await requireManagement();
-  const supabase = await createClient();
-
-  const id = formData.get("id") as string;
-  const number = formData.get("number") as string;
-  const floor = formData.get("floor") ? Number(formData.get("floor")) : null;
-  const areaSqm = formData.get("area_sqm")
-    ? Number(formData.get("area_sqm"))
-    : null;
-  const hasVotingRights = formData.get("has_voting_rights") === "true";
-  const ownerId = (formData.get("owner_id") as string) || null;
-
-  const { error } = await supabase
-    .from("apartments")
-    .update({
-      number,
-      floor,
-      area_sqm: areaSqm,
-      has_voting_rights: hasVotingRights,
-      owner_id: ownerId || null,
-    })
-    .eq("id", id)
-    .eq("organization_id", ctx.currentOrganization.id);
+  const { data, error } = await supabase.rpc("create_property_unit", {
+    p_organization_id: ctx.currentOrganization.id,
+    p_condominium_id: condominiumId,
+    p_building_id: buildingId,
+    p_number: number,
+    p_unit_type: unitType,
+    p_cadastral_number: cadastralNumber,
+    p_floor: floor,
+    p_area_sqm: areaSqm,
+    p_has_voting_rights: hasVotingRights,
+    p_owner_user_id: ownerUserId,
+  });
 
   if (error) return { error: error.message };
 
-  if (ownerId) {
-    await supabase.from("organization_members").upsert(
-      {
-        organization_id: ctx.currentOrganization.id,
-        user_id: ownerId,
-        role: "owner",
-        status: "active",
-        apartment_id: id,
-      },
-      { onConflict: "organization_id,user_id" }
-    );
-  }
-
-  revalidatePath("/apartments");
-  return { success: true };
+  revalidatePath("/properties");
+  return { success: true, propertyUnit: data };
 }
 
-export async function deleteApartment(id: string) {
+export async function deletePropertyUnit(id: string) {
   const ctx = await requireManagement();
   const supabase = await createClient();
 
   const { error } = await supabase
-    .from("apartments")
+    .from("property_units")
     .delete()
     .eq("id", id)
     .eq("organization_id", ctx.currentOrganization.id);
 
   if (error) return { error: error.message };
 
-  revalidatePath("/apartments");
+  revalidatePath("/properties");
   return { success: true };
-}
-
-export async function getBuildingsWithApartments() {
-  const ctx = await requireOrganization();
-  const supabase = await createClient();
-
-  const { data: buildings } = await supabase
-    .from("buildings")
-    .select("*")
-    .eq("organization_id", ctx.currentOrganization.id)
-    .order("name");
-
-  const { data: apartments } = await supabase
-    .from("apartments")
-    .select("*, users_profiles(id, full_name, email)")
-    .eq("organization_id", ctx.currentOrganization.id)
-    .order("number");
-
-  return { buildings: buildings ?? [], apartments: apartments ?? [] };
 }

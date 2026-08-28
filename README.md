@@ -10,6 +10,7 @@ MVP platform for managing owner associations: buildings, apartments, documents, 
 - [Architecture decisions and open choices](docs/ARCHITECTURE_DECISIONS.md)
 - [Supabase security baseline](docs/SECURITY_BASELINE.md)
 - [Development standards](docs/DEVELOPMENT_STANDARDS.md)
+- [Property domain baseline](docs/PROPERTY_DOMAIN.md)
 
 ## Tech Stack
 
