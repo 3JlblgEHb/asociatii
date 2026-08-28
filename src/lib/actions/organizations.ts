@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import type { UserRole } from "@/lib/types/database";
 
 export async function createOrganization(formData: FormData) {
-  const ctx = await requireAuth();
+  await requireAuth();
   const supabase = await createClient();
 
   const name = formData.get("name") as string;
@@ -21,31 +21,16 @@ export async function createOrganization(formData: FormData) {
 
   const slug = slugify(name) + "-" + Date.now().toString(36);
 
-  const { data: org, error } = await supabase
-    .from("organizations")
-    .insert({ name, slug, address, phone, email, description })
-    .select()
-    .single();
+  const { data: org, error } = await supabase.rpc("create_organization", {
+    p_name: name,
+    p_slug: slug,
+    p_address: address,
+    p_phone: phone,
+    p_email: email,
+    p_description: description,
+  });
 
   if (error) return { error: error.message };
-
-  const { error: memberError } = await supabase
-    .from("organization_members")
-    .insert({
-      organization_id: org.id,
-      user_id: ctx.user.id,
-      role: "association_admin",
-      status: "active",
-    });
-
-  if (memberError) return { error: memberError.message };
-
-  await writeAuditLog({
-    organizationId: org.id,
-    action: "organization_created",
-    entityType: "organization",
-    entityId: org.id,
-  });
 
   revalidatePath("/organizations");
   revalidatePath("/dashboard");
@@ -123,51 +108,20 @@ export async function inviteMember(formData: FormData) {
 }
 
 export async function acceptInvitation(token: string) {
-  const ctx = await requireAuth();
+  await requireAuth();
   const supabase = await createClient();
 
-  const { data: invitation, error } = await supabase
-    .from("organization_invitations")
-    .select("*")
-    .eq("token", token)
-    .eq("status", "pending")
-    .single();
+  const { data: organizationId, error } = await supabase.rpc(
+    "accept_organization_invitation",
+    { p_token: token }
+  );
 
-  if (error || !invitation) return { error: "Invitație invalidă sau expirată" };
-
-  if (new Date(invitation.expires_at) < new Date()) {
-    await supabase
-      .from("organization_invitations")
-      .update({ status: "expired" })
-      .eq("id", invitation.id);
-    return { error: "Invitația a expirat" };
+  if (error || !organizationId) {
+    return { error: "Invitație invalidă sau expirată" };
   }
-
-  if (invitation.email.toLowerCase() !== ctx.profile.email.toLowerCase()) {
-    return { error: "Invitația nu este pentru acest cont" };
-  }
-
-  const { error: memberError } = await supabase
-    .from("organization_members")
-    .upsert(
-      {
-        organization_id: invitation.organization_id,
-        user_id: ctx.user.id,
-        role: invitation.role,
-        status: "active",
-      },
-      { onConflict: "organization_id,user_id" }
-    );
-
-  if (memberError) return { error: memberError.message };
-
-  await supabase
-    .from("organization_invitations")
-    .update({ status: "accepted" })
-    .eq("id", invitation.id);
 
   revalidatePath("/dashboard");
-  return { success: true, organizationId: invitation.organization_id };
+  return { success: true, organizationId };
 }
 
 export async function updateMemberRole(formData: FormData) {

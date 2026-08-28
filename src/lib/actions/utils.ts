@@ -17,7 +17,7 @@ export async function writeAuditLog({
   metadata?: Record<string, unknown>;
 }) {
   const supabase = await createClient();
-  await supabase.rpc("write_audit_log", {
+  await supabase.rpc("write_management_audit_log", {
     p_organization_id: organizationId,
     p_action: action,
     p_entity_type: entityType,

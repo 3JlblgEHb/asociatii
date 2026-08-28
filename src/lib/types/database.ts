@@ -239,8 +239,23 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      create_organization: {
+        Args: {
+          p_name: string;
+          p_slug: string;
+          p_address?: string | null;
+          p_phone?: string | null;
+          p_email?: string | null;
+          p_description?: string | null;
+        };
+        Returns: Organization;
+      };
+      accept_organization_invitation: {
+        Args: { p_token: string };
+        Returns: string;
+      };
       cast_vote: { Args: { p_vote_id: string; p_option_id: string }; Returns: string };
-      write_audit_log: {
+      write_management_audit_log: {
         Args: {
           p_organization_id: string;
           p_action: string;
