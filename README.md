@@ -9,6 +9,7 @@ MVP platform for managing owner associations: buildings, apartments, documents, 
 - [Moldova domain research and sources](docs/RESEARCH_MOLDOVA.md)
 - [Architecture decisions and open choices](docs/ARCHITECTURE_DECISIONS.md)
 - [Supabase security baseline](docs/SECURITY_BASELINE.md)
+- [Development standards](docs/DEVELOPMENT_STANDARDS.md)
 
 ## Tech Stack
 
