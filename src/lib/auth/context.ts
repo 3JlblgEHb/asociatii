@@ -44,7 +44,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     organizations: Organization;
   })[];
 
-  let currentMembership =
+  const currentMembership =
     typedMemberships.find((m) => m.organization_id === orgIdFromCookie) ??
     typedMemberships[0] ??
     null;
