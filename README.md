@@ -2,6 +2,13 @@
 
 MVP platform for managing owner associations: buildings, apartments, documents, votes, service requests, and announcements.
 
+## Product documentation
+
+- [Roadmap](ROADMAP.md)
+- [Product context and operating principles](docs/PROJECT_CONTEXT.md)
+- [Moldova domain research and sources](docs/RESEARCH_MOLDOVA.md)
+- [Architecture decisions and open choices](docs/ARCHITECTURE_DECISIONS.md)
+
 ## Tech Stack
 
 - **Next.js 16** (App Router) + TypeScript
